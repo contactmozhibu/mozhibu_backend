@@ -74,8 +74,18 @@ const app = express();
 const server = http.createServer(app);
 initSocket(server);
 
-
-app.use(cors());
+// CORS configuration
+app.use(cors({
+  origin: [
+    "https://mozhibu.com",
+    "https://www.mozhibu.com",
+    "http://localhost:5173",
+    "http://localhost:3000"
+  ],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 app.use(express.json());
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
@@ -90,6 +100,8 @@ app.use("/api/translate", translateRoutes);
 app.use("/api/series", seriesRoutes);
 app.use("/api/chapters", chapterRoutes);
 
+const PORT = process.env.PORT || 5000;
+
 mongoose
   .connect(process.env.MONGO_URI)
   .then(async () => {
@@ -98,8 +110,8 @@ mongoose
     // Run migration to add category/topic to existing stories
     await migrateStoryCategories();
     
-    server.listen(5000, () =>
-      console.log("Server running on http://localhost:5000")
+    server.listen(PORT, () =>
+      console.log(`Server running on port ${PORT}`)
     );
   })
   .catch(console.error);
