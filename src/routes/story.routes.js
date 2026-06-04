@@ -5,6 +5,7 @@ import Story from "../models/Story.js";
 import User from "../models/User.js";
 import Notification from "../models/Notification.js";
 import authMiddleware from "../middleware/auth.middleware.js";
+import { getIO } from "../../socket.js";
 
 import { publishStory } from "../controllers/story.controller.js";
 
@@ -90,6 +91,96 @@ router.get("/debug/categories", async (req, res) => {
   }
 });
 
+// ✅ NEW ENDPOINT - Get all unique subcategories from published stories
+router.get("/subcategories/all", async (req, res) => {
+  try {
+    // Fetch all published stories and extract unique subcategories
+    const stories = await Story.find({ status: "PUBLISHED" }).select("subcategories");
+    
+    const uniqueSubcategories = new Set();
+    stories.forEach((story) => {
+      if (story.subcategories && Array.isArray(story.subcategories)) {
+        story.subcategories.forEach((sub) => {
+          uniqueSubcategories.add(sub);
+        });
+      }
+    });
+    
+    // Convert to sorted array
+    const sortedSubcategories = Array.from(uniqueSubcategories).sort();
+    
+    console.log("✅ Fetched unique subcategories:", sortedSubcategories.length);
+    
+    res.json({
+      success: true,
+      subcategories: sortedSubcategories,
+      count: sortedSubcategories.length
+    });
+  } catch (err) {
+    console.error("❌ Error fetching subcategories:", err);
+    res.status(500).json({ message: "Failed to fetch subcategories", error: err.message });
+  }
+});
+
+// ✅ NEW ENDPOINT - Get published stories organized by category with subcategories
+router.get("/categories/published", async (req, res) => {
+  try {
+    console.log("📚 Fetching published stories organized by category...");
+    
+    // Fetch all published stories
+    const stories = await Story.find({ status: "PUBLISHED" }).select("category topic subcategories title");
+    
+    // Build category map
+    const categoryMap = {};
+    
+    stories.forEach((story) => {
+      const category = story.category || "Uncategorized";
+      
+      if (!categoryMap[category]) {
+        categoryMap[category] = {
+          category: category,
+          topics: new Set(),
+          subcategories: new Set(),
+          storyCount: 0
+        };
+      }
+      
+      categoryMap[category].storyCount += 1;
+      
+      // Add topic
+      if (story.topic) {
+        categoryMap[category].topics.add(story.topic);
+      }
+      
+      // Add subcategories
+      if (story.subcategories && Array.isArray(story.subcategories)) {
+        story.subcategories.forEach((sub) => {
+          categoryMap[category].subcategories.add(sub);
+        });
+      }
+    });
+    
+    // Convert Sets to Arrays and sort
+    const categoriesData = Object.values(categoryMap).map((cat) => ({
+      category: cat.category,
+      storyCount: cat.storyCount,
+      topics: Array.from(cat.topics).sort(),
+      subcategories: Array.from(cat.subcategories).sort()
+    })).sort((a, b) => a.category.localeCompare(b.category));
+    
+    console.log("✅ Fetched", Object.keys(categoryMap).length, "categories with published stories");
+    
+    res.json({
+      success: true,
+      categories: categoriesData,
+      totalPublishedStories: stories.length
+    });
+  } catch (err) {
+    console.error("❌ Error fetching published stories by category:", err);
+    res.status(500).json({ message: "Failed to fetch published stories", error: err.message });
+  }
+});
+
 router.post("/", authMiddleware, async (req, res) => {
   try {
     const story = new Story({
@@ -108,14 +199,32 @@ router.get("/", optionalAuth, async (req, res) => {
   try {
     let filter = { status: "PUBLISHED" };
 
-    const { category, topic, language, ageCategory, contentType } = req.query;
+    const { category, topic, language, ageCategory, eroticType, subcategory } = req.query;
     
+    console.log("🔍 QUERY PARAMS:", { category, topic, language, ageCategory, eroticType, subcategory });
+
+    // Category filtering
     if (category) {
-      filter.category = { $regex: `^${category}$`, $options: "i" };
+      // Use exact string match instead of regex for category
+      filter.category = category;
     }
 
+    // ✅ NEW: Topic can now be a subcategory name or traditional topic
+    // First try to filter by topic as subcategory
     if (topic) {
-      filter.topic = { $regex: `^${topic}$`, $options: "i" };
+      // Topic can be a subcategory - check if topic matches any subcategory in the array
+      filter.$or = [
+        { topic: topic },                          // Traditional topic match
+        { subcategories: { $in: [topic] } }        // Topic as subcategory
+      ];
+      console.log("📝 Filtering by topic/subcategory:", topic);
+    }
+
+    // Subcategory filtering - if provided, find stories with this subcategory
+    // Subcategories can be searched independently or with category
+    if (subcategory) {
+      filter.subcategories = { $in: [subcategory] };
+      console.log("🏷️ Filtering by subcategory:", subcategory);
     }
 
     // Language filtering: convert language codes to full names and filter
@@ -131,28 +240,32 @@ router.get("/", optionalAuth, async (req, res) => {
       filter.language = mappedLanguage;
     }
 
-    // Age category filtering
+    // Age category filtering - ONLY if explicitly provided
     if (ageCategory) {
       filter.ageCategory = { $regex: `^${ageCategory}$`, $options: "i" };
     }
 
-    // Content type filtering (Erotic/Non-Erotic)
-    if (contentType) {
-      filter.contentType = { $regex: `^${contentType}$`, $options: "i" };
+    // Erotic type filtering (Erotic/Non-Erotic) - ✅ FIXED FIELD NAME
+    if (eroticType) {
+      filter.eroticType = { $regex: `^${eroticType}$`, $options: "i" };
     }
 
-    // If user is logged in and no age filter is explicitly set, use their age category
-    if (req.user?.dob && !ageCategory) {
-      filter.ageCategory = getAgeCategoryFromDOB(req.user.dob);
-    }
+    console.log("📖 FILTER APPLIED:", filter);
 
     const stories = await Story.find(filter)
       .populate("author", "username")
       .sort({ createdAt: -1 });
 
+    console.log("📊 STORIES FOUND:", stories.length);
+    if (stories.length === 0) {
+      // Debug: show what categories exist in DB
+      const allCategories = await Story.distinct("category", { status: "PUBLISHED" });
+      console.log("📚 AVAILABLE CATEGORIES IN DB:", allCategories);
+    }
+
     res.json(stories);
   } catch (err) {
-    console.error(err);
+    console.error("❌ ERROR IN GET /:", err);
     res.status(500).json({ message: "Failed to fetch stories" });
   }
 });
@@ -254,6 +367,24 @@ await Notification.create({
 
     if (notifications.length > 0) {
       await Notification.insertMany(notifications);
+    }
+
+    // 🔔 ✅ BROADCAST STORY PUBLISHED TO ALL CONNECTED CLIENTS
+    // This allows real-time updates in category/subcategory filters
+    try {
+      const io = getIO();
+      io.emit("story-published", {
+        storyId: story._id,
+        title: story.title,
+        category: story.category,
+        topic: story.topic,
+        subcategories: story.subcategories,
+        author: req.user.username,
+        authorId: req.user._id,
+      });
+      console.log("📡 Broadcasted story published event for:", story.title);
+    } catch (error) {
+      console.error("❌ Error emitting socket event:", error);
     }
 
     res.json({

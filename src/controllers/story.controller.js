@@ -8,7 +8,7 @@ import User from "../models/User.js"; // ✅ ADD THIS
 
 /* ==============================
    GET ALL STORIES (PUBLIC)
-============================== */
+============================== 
 export const getAllStories = async (req, res) => {
   try {
     const stories = await Story.find()
@@ -18,6 +18,38 @@ export const getAllStories = async (req, res) => {
     res.json(stories);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch stories" });
+  }
+};*/
+
+/* ==============================
+   GET ALL STORIES (PUBLIC)
+============================== */
+export const getAllStories = async (req, res) => {
+  try {
+    // Get language from frontend query
+    const { language } = req.query;
+
+    // Create filter object
+    let filter = {};
+
+    // If language exists, filter stories
+    if (language) {
+      filter.language = language;
+    }
+
+    const stories = await Story.find(filter)
+      .populate("author", "username")
+      .sort({ createdAt: -1 });
+
+    console.log("📚 Language Filter:", language);
+    console.log("📚 Stories Found:", stories.length);
+
+    res.json(stories);
+  } catch (err) {
+    console.error("GET STORIES ERROR:", err);
+    res.status(500).json({
+      message: "Failed to fetch stories"
+    });
   }
 };
 
@@ -141,6 +173,19 @@ export const createStory = async (req, res) => {
       coverImage,
       subcategories
     } = req.body;
+
+    // ✅ Validate required fields
+    if (!title || !title.trim()) {
+      return res.status(400).json({ message: "Title is required" });
+    }
+
+    if (!category || !category.trim()) {
+      return res.status(400).json({ message: "Category is required" });
+    }
+
+    if (!ageCategory || !ageCategory.trim()) {
+      return res.status(400).json({ message: "Age category is required" });
+    }
 
     // Map contentType → eroticType for model
     const eroticType = contentType || "Non-Erotic";
