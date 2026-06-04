@@ -84,9 +84,12 @@ app.use(cors({
     "http://localhost:3000"
   ],
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], // ← add OPTIONS
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
+
+// ADD THIS LINE right after app.use(cors(...))
+app.options("*", cors()); // ← handles preflight for all routes
 app.use(express.json());
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
