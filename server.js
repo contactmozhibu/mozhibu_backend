@@ -79,9 +79,12 @@ app.use(cors({
   origin: [
     "https://mozhibu.com",
     "https://www.mozhibu.com",
+    "https://mozhibu-backend.onrender.com",
+    "http://localhost:5173",
+    "http://localhost:3000"
   ],
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], // ← add OPTIONS
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 app.use(express.json());
