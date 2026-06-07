@@ -113,8 +113,21 @@ mongoose
     // Run migration to add category/topic to existing stories
     await migrateStoryCategories();
     
-    server.listen(PORT, () =>
-      console.log(`Server running on port ${PORT}`)
-    );
+    // Inside .then() after server.listen() — add keep-alive ping
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+
+  // Prevent Render free tier from sleeping (pings every 14 min)
+  if (process.env.NODE_ENV === "production") {
+    setInterval(async () => {
+      try {
+        await fetch("https://mozhibu-backend.onrender.com/api/health");
+        console.log("Keep-alive ping sent");
+      } catch (e) {
+        console.log("Keep-alive ping failed:", e.message);
+      }
+    }, 14 * 60 * 1000);
+  }
+});
   })
   .catch(console.error);
