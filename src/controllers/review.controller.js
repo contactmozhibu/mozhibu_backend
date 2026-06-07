@@ -19,10 +19,13 @@ export const createReview = async (req, res) => {
       comment,
     });
 
-    // 2️⃣ Find story + author
+    // 2️⃣ Populate user data in the review
+    await review.populate("user", "username");
+
+    // 3️⃣ Find story + author
     const story = await Story.findById(storyId).populate("author");
 
-    // 3️⃣ Create notification for author
+    // 4️⃣ Create notification for author
     if (
       story &&
       story.author &&

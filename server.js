@@ -65,7 +65,7 @@ import translateRoutes from "./src/routes/translate.routes.js";
 import seriesRoutes from "./src/routes/series.routes.js";
 import chapterRoutes from "./src/routes/chapter.routes.js";
 import migrateStoryCategories from "./src/utils/migrateCategories.js";
-
+import categoryRoutes from "./src/routes/category.routes.js";
 
 
 dotenv.config();
@@ -79,6 +79,10 @@ app.use(cors({
   origin: [
     "https://mozhibu.com",
     "https://www.mozhibu.com",
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
   ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], // ← add OPTIONS
@@ -97,6 +101,8 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/translate", translateRoutes);
 app.use("/api/series", seriesRoutes);
 app.use("/api/chapters", chapterRoutes);
+
+app.use("/api/categories", categoryRoutes);
 
 const PORT = process.env.PORT || 5000;
 

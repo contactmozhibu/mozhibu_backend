@@ -58,11 +58,12 @@ export const register = async (req, res) => {
 
     // ✅ Response
     res.status(201).json({
-      token: generateToken(user._id),
+      token: generateToken(user),
       user: {
         id: user._id,
         email: user.email,
         username: user.username,
+        role: user.role || "user",
         ageGroup: user.ageGroup,
         ageKey: user.ageKey,
       },
@@ -89,12 +90,12 @@ export const login = async (req, res) => {
   }
 
   res.json({
-    token: generateToken(user._id),
+    token: generateToken(user),
     user: {
       id: user._id,
       email: user.email,
       username: user.username,
-      role: user.role,
+      role: user.role || "user",
       isActive: user.isActive,
     },
   });
