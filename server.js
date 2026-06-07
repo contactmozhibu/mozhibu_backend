@@ -64,8 +64,9 @@ import adminRoutes from "./src/routes/admin.routes.js";
 import translateRoutes from "./src/routes/translate.routes.js";
 import seriesRoutes from "./src/routes/series.routes.js";
 import chapterRoutes from "./src/routes/chapter.routes.js";
-import migrateStoryCategories from "./src/utils/migrateCategories.js";
 import categoryRoutes from "./src/routes/category.routes.js";
+import uploadRoutes from "./src/routes/upload.routes.js";
+import migrateStoryCategories from "./src/utils/migrateCategories.js";
 
 
 dotenv.config();
@@ -100,8 +101,8 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/translate", translateRoutes);
 app.use("/api/series", seriesRoutes);
 app.use("/api/chapters", chapterRoutes);
-
 app.use("/api/categories", categoryRoutes);
+app.use("/api/upload", uploadRoutes);
 
 const PORT = process.env.PORT || 5000;
 
