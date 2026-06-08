@@ -34,38 +34,44 @@ const storySchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-
+/*
     topic: {
   type: String,
   default: "General",
 },
+*/
 
-    language: String,
+subcategories: {
+  type: [String],
+  default: [],
+},
+   // language: String,
 
     ageCategory: {
   type: String,
   enum: [
-    "Kids (0-6)",
-    "Children (7-9)",
-    "Pre-Teens (10-12)",
-    "Teens (13-17)",
-    "Young Adults (18-25)",
-    "Adults (26+)",
+    "Kids (0-9)",
+    "Teens (10-17)",
+    "Adults (18+)",
   ],
   required: true,
 },
 
 
+language: {
+  type: String,
+  enum: ["English", "Tamil"],
+  default: "English"
+},
+
+
     // 🔥 NEW FIELD (only for 18+)
-    eroticType: {
+   contentType: {
       type: String,
       enum: ["Erotic", "Non-Erotic"],
       required: function () {
-        return (
-          this.ageCategory === "Young Adults" ||
-          this.ageCategory === "Adults"
-        );
-      },
+  return this.ageCategory === "Adults (18+)";
+},
     },
 
     coverImage: String,

@@ -1,3 +1,4 @@
+
 import User from "../models/User.js";
 import { getIO } from "../../socket.js";
 
@@ -5,6 +6,7 @@ import { getIO } from "../../socket.js";
 /* =========================
    FOLLOW AUTHOR
 ========================= */
+/*
 export const followAuthor = async (req, res) => {
   const authorId = req.params.id;
   const userId = req.user._id.toString();
@@ -52,6 +54,67 @@ res.json({
 
 
 };
+*/
+
+
+export const followAuthor = async (req, res) => {
+  try {
+    const authorId = req.params.id;
+    const userId = req.user._id.toString();
+
+    if (authorId === userId) {
+      return res.status(400).json({
+        message: "You cannot follow yourself",
+      });
+    }
+
+    const author = await User.findById(authorId);
+    const user = await User.findById(userId);
+
+    if (!author || !user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const alreadyFollowing = author.followers.some(
+      (id) => id.toString() === userId
+    );
+
+    if (alreadyFollowing) {
+      return res.json({
+        following: true,
+        followersCount: author.followers.length,
+      });
+    }
+
+    author.followers.push(userId);
+    user.following.push(authorId);
+
+    await author.save();
+    await user.save();
+
+    const io = getIO();
+
+    io.to(authorId).emit("follow-updated", {
+      authorId,
+      followersCount: author.followers.length,
+      isFollowing: true,
+    });
+
+    res.json({
+      following: true,
+      followersCount: author.followers.length,
+    });
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message: "Failed to follow author",
+    });
+  }
+};
+
 
 /* =========================
    UNFOLLOW AUTHOR
@@ -133,6 +196,7 @@ export const accountAction = async (req, res) => {
 /* =========================
    GET LOGGED-IN AUTHOR (ME)
 ========================= */
+/*
 export const getMeAuthor = async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
@@ -144,5 +208,30 @@ export const getMeAuthor = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to fetch author profile" });
+  }
+};
+*/
+
+export const getMeAuthor = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .select("-password")
+      .populate("followers", "username avatar")
+      .populate("following", "username avatar");
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    res.json({
+      author: user,
+    });
+  } catch (err) {
+    console.error("GET ME ERROR:", err);
+    res.status(500).json({
+      message: "Failed to fetch author profile",
+    });
   }
 };

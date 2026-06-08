@@ -1,4 +1,4 @@
-
+/*
 import express from "express";
 import User from "../models/User.js";
 import Story from "../models/Story.js";
@@ -27,6 +27,7 @@ const router = express.Router();
 /* ======================
    MULTER CONFIG
 ====================== */
+/*
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadPath);
@@ -41,6 +42,7 @@ const upload = multer({ storage });
 /* ======================
    GET LOGGED-IN AUTHOR
 ====================== */
+/*
 router.get("/me", authMiddleware, async (req, res) => {
   try {
     const author = await User.findById(req.user._id)
@@ -61,6 +63,7 @@ router.get("/me", authMiddleware, async (req, res) => {
 /* ======================
    UPDATE PROFILE
 ====================== */
+/*
 router.put(
   "/me",
   authMiddleware,
@@ -100,6 +103,7 @@ router.put(
    DEACTIVATE ACCOUNT
    🟡 TEMPORARY - Profile hidden but data preserved
 ====================== */
+/*
 router.patch("/deactivate", authMiddleware, async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(
@@ -122,6 +126,7 @@ router.patch("/deactivate", authMiddleware, async (req, res) => {
    DELETE ACCOUNT
    🔴 PERMANENT - Deletes all user data
 ====================== */
+/*
 router.delete("/delete", authMiddleware, async (req, res) => {
   try {
     const userId = req.user._id;
@@ -167,6 +172,7 @@ router.delete("/delete", authMiddleware, async (req, res) => {
 /* ======================
    GET AUTHOR BY ID (PUBLIC)
 ====================== */
+/*
 router.get("/:id", async (req, res) => {
   try {
     const author = await User.findById(req.params.id).select(
@@ -191,6 +197,7 @@ router.get("/:id", async (req, res) => {
 /* ======================
    GET FOLLOWERS LIST
 ====================== */
+/*
 router.get("/:id/followers", async (req, res) => {
   try {
     const author = await User.findById(req.params.id).populate(
@@ -211,6 +218,7 @@ router.get("/:id/followers", async (req, res) => {
 /* ======================
    GET FOLLOWING LIST
 ====================== */
+/*
 router.get("/:id/following", async (req, res) => {
   try {
     const author = await User.findById(req.params.id).populate(
@@ -232,6 +240,7 @@ router.get("/:id/following", async (req, res) => {
    FOLLOW / UNFOLLOW AUTHOR
    🔔 NOTIFICATION ADDED
 ====================== */
+/*
 router.post("/:authorId/follow", authMiddleware, async (req, res) => {
   try {
     const userId = req.user._id.toString();
@@ -289,5 +298,516 @@ router.post("/:authorId/follow", authMiddleware, async (req, res) => {
 });
 
 export default router;
+*/
 
+
+import express from "express";
+import User from "../models/User.js";
+import Story from "../models/Story.js";
+import Notification from "../models/Notification.js";
+import Review from "../models/Review.js";
+import authMiddleware from "../middleware/auth.middleware.js";
+
+import multer from "multer";
+import fs from "fs";
+import path from "path";
+
+const router = express.Router();
+
+/* ======================
+   UPLOAD DIRECTORY
+====================== */
+const uploadPath = path.join("uploads", "avatars");
+
+if (!fs.existsSync(uploadPath)) {
+  fs.mkdirSync(uploadPath, { recursive: true });
+}
+
+/* ======================
+   MULTER CONFIG
+====================== */
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadPath);
+  },
+
+  filename: (req, file, cb) => {
+    cb(
+      null,
+      `${req.user._id}-${Date.now()}${path.extname(
+        file.originalname
+      )}`
+    );
+  },
+});
+
+const upload = multer({ storage });
+
+/* ======================
+   GET LOGGED-IN AUTHOR
+====================== */
+router.get("/me", authMiddleware, async (req, res) => {
+  try {
+    const author = await User.findById(req.user._id)
+      .select(
+        `
+        username
+        firstName
+        lastName
+        email
+        mobile
+        phone
+        bio
+        summary
+        avatar
+        isActive
+        createdAt
+        followers
+        following
+      `
+      )
+      .populate("followers", "username avatar")
+      .populate("following", "username avatar")
+      .lean();
+
+    if (!author) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const stories = await Story.find({
+      author: req.user._id,
+      status: "PUBLISHED",
+    });
+
+    res.json({
+      author,
+      stories,
+    });
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message: "Failed to load profile",
+    });
+  }
+});
+
+/* ======================
+   UPDATE PROFILE
+====================== */
+router.put(
+  "/me",
+  authMiddleware,
+  upload.single("avatar"),
+  async (req, res) => {
+    try {
+      const {
+        firstName,
+        lastName,
+        //phone,
+        //summary,
+        username,
+        mobile,
+        bio,
+      } = req.body;
+      console.log("REQ BODY:", req.body);
+      const updateData = {};
+
+      if (firstName !== undefined)
+        updateData.firstName = firstName;
+
+      if (lastName !== undefined)
+        updateData.lastName = lastName;
+
+      //if (phone !== undefined)
+        //updateData.phone = phone;
+
+      //if (summary !== undefined)
+        //updateData.summary = summary;
+
+      if (username !== undefined)
+        updateData.username = username;
+
+      if (mobile !== undefined)
+        updateData.mobile = mobile;
+
+      //if (bio !== undefined)
+       // updateData.bio = bio;
+      if (bio !== undefined) {
+  updateData.bio = Array.isArray(bio)
+    ? bio.join(" ")
+    : bio;
+}
+
+      if (req.file) {
+        updateData.avatar =
+          `/uploads/avatars/${req.file.filename}`;
+      }
+
+      console.log("REQ BODY:", req.body);
+console.log("UPDATE DATA:", updateData);
+console.log("REQ FILE:", req.file);
+
+      const updatedUser =
+        await User.findByIdAndUpdate(
+          req.user._id,
+          updateData,
+          {
+            new: true,
+          }
+        )
+          .populate(
+            "followers",
+            "username avatar"
+          )
+          .populate(
+            "following",
+            "username avatar"
+          );
+
+      res.json({
+        message:
+          "Profile updated successfully",
+        author: updatedUser,
+      });
+    } catch (err) {
+      console.error(err);
+
+      res.status(500).json({
+        message:
+          "Failed to update profile",
+      });
+    }
+  }
+);
+
+/* ======================
+   DEACTIVATE ACCOUNT
+====================== */
+router.patch(
+  "/deactivate",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const user =
+        await User.findByIdAndUpdate(
+          req.user._id,
+          {
+            isActive: false,
+          },
+          {
+            new: true,
+          }
+        );
+
+      res.json({
+        message:
+          "Account deactivated successfully",
+        user,
+      });
+    } catch (err) {
+      console.error(err);
+
+      res.status(500).json({
+        message:
+          "Failed to deactivate account",
+      });
+    }
+  }
+);
+
+/* ======================
+   DELETE ACCOUNT
+====================== */
+router.delete(
+  "/delete",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const userId = req.user._id;
+
+      const stories =
+        await Story.find({
+          author: userId,
+        });
+
+      const storyIds =
+        stories.map((s) => s._id);
+
+      await Review.deleteMany({
+        story: {
+          $in: storyIds,
+        },
+      });
+
+      await Story.deleteMany({
+        author: userId,
+      });
+
+      await Review.deleteMany({
+        user: userId,
+      });
+
+      await Notification.deleteMany({
+        $or: [
+          { user: userId },
+          { fromUser: userId },
+        ],
+      });
+
+      await User.updateMany(
+        {},
+        {
+          $pull: {
+            followers: userId,
+            following: userId,
+          },
+        }
+      );
+
+      await User.findByIdAndDelete(
+        userId
+      );
+
+      res.json({
+        message:
+          "Account permanently deleted",
+      });
+    } catch (err) {
+      console.error(err);
+
+      res.status(500).json({
+        message:
+          "Failed to delete account",
+      });
+    }
+  }
+);
+
+/* ======================
+   PUBLIC AUTHOR
+====================== */
+router.get("/:id", async (req, res) => {
+  try {
+    const author =
+      await User.findById(
+        req.params.id
+      )
+        .select(
+          `
+        username
+        avatar
+        createdAt
+        followers
+        following
+      `
+        )
+        .populate(
+          "followers",
+          "username avatar"
+        )
+        .populate(
+          "following",
+          "username avatar"
+        );
+
+    if (!author) {
+      return res.status(404).json({
+        message: "Author not found",
+      });
+    }
+
+    const stories =
+      await Story.find({
+        author: author._id,
+        status: "PUBLISHED",
+      });
+
+    res.json({
+      author,
+      stories,
+    });
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message:
+        "Failed to load author",
+    });
+  }
+});
+
+/* ======================
+   FOLLOWERS LIST
+====================== */
+router.get(
+  "/:id/followers",
+  async (req, res) => {
+    try {
+      const author =
+        await User.findById(
+          req.params.id
+        ).populate(
+          "followers",
+          "username avatar"
+        );
+
+      if (!author) {
+        return res.status(404).json({
+          message:
+            "Author not found",
+        });
+      }
+
+      res.json(
+        author.followers || []
+      );
+    } catch (err) {
+      console.error(err);
+
+      res.status(500).json({
+        message:
+          "Failed to load followers",
+      });
+    }
+  }
+);
+
+/* ======================
+   FOLLOWING LIST
+====================== */
+router.get(
+  "/:id/following",
+  async (req, res) => {
+    try {
+      const author =
+        await User.findById(
+          req.params.id
+        ).populate(
+          "following",
+          "username avatar"
+        );
+
+      if (!author) {
+        return res.status(404).json({
+          message:
+            "Author not found",
+        });
+      }
+
+      res.json(
+        author.following || []
+      );
+    } catch (err) {
+      console.error(err);
+
+      res.status(500).json({
+        message:
+          "Failed to load following",
+      });
+    }
+  }
+);
+
+/* ======================
+   FOLLOW / UNFOLLOW
+====================== */
+router.post(
+  "/:authorId/follow",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const userId =
+        req.user._id.toString();
+
+      const { authorId } =
+        req.params;
+
+      if (userId === authorId) {
+        return res.status(400).json({
+          message:
+            "You cannot follow yourself",
+        });
+      }
+
+      const author =
+        await User.findById(
+          authorId
+        );
+
+      const user =
+        await User.findById(
+          userId
+        );
+
+      if (!author || !user) {
+        return res.status(404).json({
+          message:
+            "User not found",
+        });
+      }
+
+      const isFollowing =
+        author.followers.some(
+          (id) =>
+            id.toString() ===
+            userId
+        );
+
+      if (isFollowing) {
+        author.followers =
+          author.followers.filter(
+            (id) =>
+              id.toString() !==
+              userId
+          );
+
+        user.following =
+          user.following.filter(
+            (id) =>
+              id.toString() !==
+              authorId
+          );
+      } else {
+        author.followers.addToSet(
+          userId
+        );
+
+        user.following.addToSet(
+          authorId
+        );
+
+        await Notification.create({
+          user: author._id,
+          fromUser: user._id,
+          type: "FOLLOW",
+          message: `${user.username} started following you`,
+        });
+      }
+
+      await author.save();
+      await user.save();
+
+      res.json({
+        following:
+          !isFollowing,
+        followersCount:
+          author.followers.length,
+        followers:
+          author.followers,
+      });
+    } catch (err) {
+      console.error(err);
+
+      res.status(500).json({
+        message:
+          "Server error",
+      });
+    }
+  }
+);
+
+export default router;
 

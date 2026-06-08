@@ -27,24 +27,20 @@ export const register = async (req, res) => {
     if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
+// 🧠 Determine ageGroup + ageKey
+let ageGroup;
+let ageKey;
 
-    // 🧠 Determine ageGroup + ageKey
-    let ageGroup = "Adults (26+)";
-    let ageKey = "adults";
-
-    if (age <= 6) {
-      ageGroup = "Kids (0–6)";
-      ageKey = "kids";
-    } else if (age <= 9) {
-      ageGroup = "Children (7–9)";
-      ageKey = "children";
-    } else if (age <= 17) {
-      ageGroup = "Teens (10–17)";
-      ageKey = "teens";
-    } else if (age <= 25) {
-      ageGroup = "Young Adults (18–25)";
-      ageKey = "young_adults";
-    }
+if (age <= 9) {
+  ageGroup = "Kids (0-9)";
+  ageKey = "kids";
+} else if (age <= 17) {
+  ageGroup = "Teens (10-17)";
+  ageKey = "teens";
+} else {
+  ageGroup = "Adults (18+)";
+  ageKey = "adults";
+}
 
     // 👤 Create user
     const user = await User.create({

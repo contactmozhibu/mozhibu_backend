@@ -37,12 +37,9 @@ const getAgeCategoryFromDOB = (dob) => {
     age--;
   }
 
-  if (age <= 6) return "Kids (0-6)";
-  if (age <= 9) return "Children (7-9)";
-  if (age <= 12) return "Pre-Teens (10-12)";
-  if (age <= 17) return "Teens (13-17)";
-  if (age <= 25) return "Young Adults (18-25)";
-  return "Adults (26+)";
+if (age <= 9) return "Kids (0-9)";
+if (age <= 17) return "Teens (10-17)";
+return "Adults (18+)";
 };
 
 // DEBUG ENDPOINT - Shows all categories and topics in database
@@ -89,7 +86,7 @@ router.get("/debug/categories", async (req, res) => {
     res.status(500).json({ message: "Debug error", error: err.message });
   }
 });
-
+/*
 router.post("/", authMiddleware, async (req, res) => {
   try {
     const story = new Story({
@@ -104,20 +101,49 @@ router.post("/", authMiddleware, async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 });
+*/
+router.post("/", authMiddleware, async (req, res) => {
+  try {
+    const story = new Story({
+      title: req.body.title,
+      description: req.body.description,
+      content: req.body.content,
+      category: req.body.category,
+      topic: req.body.topic || "General",
+      subcategories: req.body.subcategories || [],   // ✅ ADD THIS
+      ageCategory: req.body.ageCategory,
+      language: req.body.language,
+      contentType: req.body.contentType,
+      coverImage: req.body.coverImage,
+      storyType: req.body.storyType,
+      author: req.user._id,
+    });
+
+    await story.save();
+    res.status(201).json(story);
+  } catch (err) {
+    console.error("Story save error:", err);
+    res.status(400).json({ message: err.message });
+  }
+});
+
 router.get("/", optionalAuth, async (req, res) => {
   try {
     let filter = { status: "PUBLISHED" };
 
-    const { category, topic, language, ageCategory, contentType } = req.query;
-    
+    //const { category, topic, language, ageCategory, contentType } = req.query;
+    const { category, language, ageCategory, contentType, subcategory } = req.query;
     if (category) {
       filter.category = { $regex: `^${category}$`, $options: "i" };
     }
-
+/*
     if (topic) {
       filter.topic = { $regex: `^${topic}$`, $options: "i" };
     }
-
+*/
+if (subcategory) {
+  filter.subcategories = { $in: [subcategory] };
+}
     // Language filtering: convert language codes to full names and filter
     if (language) {
       const languageMap = {
@@ -266,5 +292,57 @@ await Notification.create({
   }
 });
 
+
+// UPDATE STORY (ALLOW BOTH DRAFT + PUBLISHED)
+router.put("/:id", authMiddleware, async (req, res) => {
+  try {
+    const story = await Story.findById(req.params.id);
+
+    if (!story) {
+      return res.status(404).json({ message: "Story not found" });
+    }
+
+    // only author can edit
+    if (story.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    // update fields
+    Object.assign(story, req.body);
+
+    await story.save();
+
+    res.json({
+      message: "Story updated successfully",
+      story,
+    });
+  } catch (err) {
+    console.error("UPDATE ERROR:", err);
+    res.status(500).json({ message: "Failed to update story" });
+  }
+});
+
+
+// DELETE STORY (WORKS FOR PUBLISHED ALSO)
+router.delete("/:id", authMiddleware, async (req, res) => {
+  try {
+    const story = await Story.findById(req.params.id);
+
+    if (!story) {
+      return res.status(404).json({ message: "Story not found" });
+    }
+
+    if (story.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    await Story.findByIdAndDelete(req.params.id);
+
+    res.json({ message: "Story deleted successfully" });
+  } catch (err) {
+    console.error("DELETE ERROR:", err);
+    res.status(500).json({ message: "Failed to delete story" });
+  }
+});
 
 export default router;
