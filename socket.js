@@ -7,7 +7,9 @@ export const initSocket = (server) => {
   cors: {
     origin: [
   "https://mozhibu.com",
-  "https://www.mozhibu.com"
+  "https://www.mozhibu.com",
+  "http://localhost:5173",
+    "http://localhost:3000"
 ],
     methods: ["GET", "POST"],
     credentials: true,

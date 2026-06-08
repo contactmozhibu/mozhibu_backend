@@ -41,11 +41,31 @@ const storySchema = new mongoose.Schema(
 },
 */
 
+<<<<<<< HEAD
 subcategories: {
   type: [String],
   default: [],
 },
    // language: String,
+=======
+    subcategories: {
+      type: [String],
+      default: [],
+      validate: {
+        validator: function(arr) {
+          return arr.length <= 3;
+        },
+        message: "Maximum 3 subcategories allowed"
+      }
+    },
+
+    //language: String,
+    language: {
+  type: String,
+  enum: ["English", "Tamil"],
+  default: "English"
+},
+>>>>>>> 4d30518878c9140b21d8b518203420f28d106e7d
 
     ageCategory: {
   type: String,
