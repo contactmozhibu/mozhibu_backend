@@ -55,6 +55,7 @@ export const getAllStories = async (req, res) => {
 /* ==============================
    GET ALL STORIES (PUBLIC)
 ============================== */
+/*
 export const getAllStories = async (req, res) => {
   try {
     // Get language from frontend query

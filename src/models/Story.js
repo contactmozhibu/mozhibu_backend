@@ -41,13 +41,6 @@ const storySchema = new mongoose.Schema(
 },
 */
 
-<<<<<<< HEAD
-subcategories: {
-  type: [String],
-  default: [],
-},
-   // language: String,
-=======
     subcategories: {
       type: [String],
       default: [],
@@ -59,13 +52,11 @@ subcategories: {
       }
     },
 
-    //language: String,
     language: {
-  type: String,
-  enum: ["English", "Tamil"],
-  default: "English"
-},
->>>>>>> 4d30518878c9140b21d8b518203420f28d106e7d
+      type: String,
+      enum: ["English", "Tamil"],
+      default: "English"
+    },
 
     ageCategory: {
   type: String,
@@ -76,14 +67,6 @@ subcategories: {
   ],
   required: true,
 },
-
-
-language: {
-  type: String,
-  enum: ["English", "Tamil"],
-  default: "English"
-},
-
 
     // 🔥 NEW FIELD (only for 18+)
    contentType: {
