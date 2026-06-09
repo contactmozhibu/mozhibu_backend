@@ -45,7 +45,7 @@ ageGroup: String,
 
 ageKey: {
   type: String,
-  enum: ["kids", "children", "teens", "young_adults", "adults"],
+  enum: ["kids","teens","adults"],
   required: true,
 },
 

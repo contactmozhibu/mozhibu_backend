@@ -7,7 +7,7 @@ const ageCategorySchema = new mongoose.Schema(
       required: true,
       unique: true,
       trim: true,
-      // e.g., "Kids (0-6)", "Children (7-9)", "Adults (26+)"
+      // e.g., "Kids (0-12)", "Teens (13-17)", "Adults (18+)"
     },
     minAge: {
       type: Number,

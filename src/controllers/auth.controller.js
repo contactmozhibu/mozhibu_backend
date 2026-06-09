@@ -29,22 +29,19 @@ export const register = async (req, res) => {
     }
 
     // 🧠 Determine ageGroup + ageKey
-    let ageGroup = "Adults (26+)";
-    let ageKey = "adults";
+let ageGroup;
+let ageKey;
 
-    if (age <= 6) {
-      ageGroup = "Kids (0–6)";
-      ageKey = "kids";
-    } else if (age <= 9) {
-      ageGroup = "Children (7–9)";
-      ageKey = "children";
-    } else if (age <= 17) {
-      ageGroup = "Teens (10–17)";
-      ageKey = "teens";
-    } else if (age <= 25) {
-      ageGroup = "Young Adults (18–25)";
-      ageKey = "young_adults";
-    }
+if (age <= 12) {
+  ageGroup = "Kids (0-12)";
+  ageKey = "kids";
+} else if (age <= 17) {
+  ageGroup = "Teens (13-17)";
+  ageKey = "teens";
+} else {
+  ageGroup = "Adults (18+)";
+  ageKey = "adults";
+}
 
     // 👤 Create user
     const user = await User.create({

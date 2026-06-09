@@ -38,12 +38,9 @@ const getAgeCategoryFromDOB = (dob) => {
     age--;
   }
 
-  if (age <= 6) return "Kids (0-6)";
-  if (age <= 9) return "Children (7-9)";
-  if (age <= 12) return "Pre-Teens (10-12)";
+  if (age <= 12) return "Kids (0-12)";
   if (age <= 17) return "Teens (13-17)";
-  if (age <= 25) return "Young Adults (18-25)";
-  return "Adults (26+)";
+  return "Adults (18+)";
 };
 
 // DEBUG ENDPOINT - Shows all categories and topics in database

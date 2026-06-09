@@ -34,12 +34,9 @@ const draftSchema = new mongoose.Schema(
     ageCategory: {
       type: String,
       enum: [
-        "Kids (0-6)",
-        "Children (7-9)",
-        "Pre-Teens (10-12)",
+        "Kids (0-12)",
         "Teens (13-17)",
-        "Young Adults (18-25)",
-        "Adults (26+)",
+        "Adults (18+)",
       ],
       required: true,
     },
