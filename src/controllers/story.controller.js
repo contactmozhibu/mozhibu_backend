@@ -4,7 +4,8 @@ import { getIO } from "../../socket.js";
 import Story from "../models/Story.js";
 import Chapter from "../models/Chapter.js";
 import Notification from "../models/Notification.js";
-import User from "../models/User.js"; // ✅ ADD THIS
+import User from "../models/User.js";
+import Category from "../models/category.js";
 
 
 /* ==============================
@@ -13,13 +14,40 @@ import User from "../models/User.js"; // ✅ ADD THIS
 /*
 export const getAllStories = async (req, res) => {
   try {
-    const stories = await Story.find()
+    // Get language and search from frontend query
+    const { language, search } = req.query;
+
+    // Create filter object
+    let filter = {};
+
+    // If language exists, filter stories
+    if (language) {
+      filter.language = language;
+    }
+
+    // If search exists, add search filter (case-insensitive regex)
+    if (search && search.trim()) {
+      filter.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+        { category: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const stories = await Story.find(filter)
       .populate("author", "username")
       .sort({ createdAt: -1 });
 
+    console.log("📚 Language Filter:", language);
+    console.log("📚 Search Filter:", search);
+    console.log("📚 Stories Found:", stories.length);
+
     res.json(stories);
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch stories" });
+    console.error("GET STORIES ERROR:", err);
+    res.status(500).json({
+      message: "Failed to fetch stories"
+    });
   }
 };
 */
@@ -55,6 +83,41 @@ export const getAllStories = async (req, res) => {
     });
   }
 };
+*/
+
+/* ==============================
+   GET ALL STORIES (PUBLIC)
+============================== */
+export const getAllStories = async (req, res) => {
+  try {
+    // Get language from frontend query
+    const { language } = req.query;
+
+    // Create filter object
+    let filter = {};
+
+    // If language exists, filter stories
+    if (language) {
+      filter.language = language;
+    }
+
+    const stories = await Story.find(filter)
+      .populate("author", "username")
+      .sort({ createdAt: -1 });
+
+    console.log("📚 Language Filter:", language);
+    console.log("📚 Stories Found:", stories.length);
+
+    res.json(stories);
+  } catch (err) {
+    console.error("GET STORIES ERROR:", err);
+    res.status(500).json({
+      message: "Failed to fetch stories"
+    });
+  }
+};
+
+
 
 
 
@@ -114,6 +177,24 @@ export const publishStory = async (req, res) => {
 
     story.status = "PUBLISHED";
     await story.save();
+
+    // 🔥 ADD STORY TO CATEGORY STORIES ARRAY (if published)
+    try {
+      await Category.findOneAndUpdate(
+        { name: story.category },
+        { 
+          $addToSet: { 
+            stories: { 
+              storyId: story._id, 
+              title: story.title 
+            } 
+          } 
+        },
+        { upsert: false }
+      );
+    } catch (catErr) {
+      console.warn("⚠️ Could not add story to category:", catErr.message);
+    }
 
     // AFTER story is published
 const notification = await Notification.create({
@@ -179,6 +260,19 @@ export const createStory = async (req, res) => {
       subcategories
     } = req.body;
 
+    // ✅ Validate required fields
+    if (!title || !title.trim()) {
+      return res.status(400).json({ message: "Title is required" });
+    }
+
+    if (!category || !category.trim()) {
+      return res.status(400).json({ message: "Category is required" });
+    }
+
+    if (!ageCategory || !ageCategory.trim()) {
+      return res.status(400).json({ message: "Age category is required" });
+    }
+
     // Map contentType → eroticType for model
     const eroticType = contentType || "Non-Erotic";
 
@@ -207,6 +301,24 @@ export const createStory = async (req, res) => {
       author: req.user.id,
       subcategories
     });
+
+    // 🔥 ADD STORY TO CATEGORY STORIES ARRAY
+    try {
+      await Category.findOneAndUpdate(
+        { name: category },
+        { 
+          $addToSet: { 
+            stories: { 
+              storyId: story._id, 
+              title: story.title 
+            } 
+          } 
+        },
+        { upsert: false }
+      );
+    } catch (catErr) {
+      console.warn("⚠️ Could not add story to category:", catErr.message);
+    }
 
     return res.status(201).json(story);
   } catch (err) {

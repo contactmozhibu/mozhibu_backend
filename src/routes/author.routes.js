@@ -70,7 +70,9 @@ router.put(
   upload.single("avatar"),
   async (req, res) => {
     try {
-      const { username, mobile, bio } = req.body;
+      const { username, mobile, bio, deleteAvatar } = req.body;
+
+      console.log("🔧 UPDATE PROFILE - deleteAvatar:", deleteAvatar, "has file:", !!req.file);
 
       const updateData = {
         ...(username && { username }),
@@ -78,7 +80,13 @@ router.put(
         ...(bio && { bio }),
       };
 
-      if (req.file) {
+      // 🗑️ DELETE AVATAR
+      if (deleteAvatar === "true") {
+        console.log("🗑️ Deleting avatar...");
+        updateData.avatar = ""; // Set to empty string, not null
+      } else if (req.file) {
+        // 🖼️ UPDATE AVATAR
+        console.log("🖼️ Uploading new avatar...");
         updateData.avatar = `/uploads/avatars/${req.file.filename}`;
       }
 
@@ -86,14 +94,16 @@ router.put(
         req.user._id,
         updateData,
         { new: true }
-      ).select("username email mobile bio avatar");
+      ).select("username email mobile bio avatar followers following");
+
+      console.log("✅ Profile updated. Avatar value:", updatedUser.avatar);
 
       res.json({
         message: "Profile updated successfully",
         author: updatedUser,
       });
     } catch (err) {
-      console.error(err);
+      console.error("❌ Profile update error:", err);
       res.status(500).json({ message: "Failed to update profile" });
     }
   }
