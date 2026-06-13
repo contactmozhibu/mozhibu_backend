@@ -6,7 +6,7 @@ import Notification from "../models/Notification.js";
 export const createReview = async (req, res) => {
   try {
     console.log("BODY:", req.body);
-    const { story: storyId, rating, comment } = req.body;
+    const { storyId, rating, comment } = req.body;
 
     if (!storyId || !rating) {
       return res.status(400).json({ message: "Missing fields" });
@@ -49,53 +49,6 @@ export const createReview = async (req, res) => {
   }
 };
 
-/*
-export const createReview = async (req, res) => {
-  try {
-    const { storyId, rating, comment } = req.body;
-
-    if (!storyId || !rating) {
-      return res.status(400).json({ message: "Missing fields" });
-    }
-
-    const story = await Story.findById(storyId).populate("author");
-
-    if (!story) {
-      return res.status(404).json({ message: "Story not found" });
-    }
-
-    // 🚨 BLOCK AUTHOR FROM RATING
-    if (story.author._id.toString() === req.user._id.toString()) {
-      return res.status(403).json({
-        message: "Authors cannot rate their own story",
-      });
-    }
-
-    // 1️⃣ Create review
-    const review = await Review.create({
-      story: storyId,
-      user: req.user._id,
-      rating,
-      comment,
-    });
-
-    // 2️⃣ Notification to author
-    await Notification.create({
-      user: story.author._id,
-      fromUser: req.user._id,
-      type: "REVIEW",
-      story: story._id,
-      review: review._id,
-      message: `${req.user.username} reviewed your story "${story.title}"`,
-    });
-
-    res.status(201).json(review);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to submit review" });
-  }
-};
-*/
 
 export const getReviewsByStory = async (req, res) => {
   try {
@@ -111,36 +64,7 @@ export const getReviewsByStory = async (req, res) => {
   }
 };
 
-/*
-export const addReply = async (req, res) => {
-  try {
-    const { reviewId } = req.params;
-    const { comment, parentReplyId = null } = req.body;
 
-    const review = await Review.findById(reviewId);
-
-    if (!review) {
-      return res.status(404).json({ message: "Review not found" });
-    }
-
-    review.replies.push({
-      user: req.user._id,
-      comment,
-      parentReplyId, // 👈 important for nested replies
-    });
-
-    await review.save();
-
-    const updated = await Review.findById(reviewId)
-      .populate("user", "username avatar")
-      .populate("replies.user", "username avatar");
-
-    res.json(updated);
-  } catch (err) {
-    res.status(500).json({ message: "Reply failed" });
-  }
-};
-*/
 export const addReply = async (req, res) => {
   try {
     const { reviewId } = req.params;

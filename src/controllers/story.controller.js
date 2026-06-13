@@ -153,7 +153,9 @@ export const getMyStories = async (req, res) => {
   try {
     const stories = await Story.find({
       author: req.user._id,
-    }).sort({ createdAt: -1 });
+    })
+      .populate("author", "username")
+      .sort({ createdAt: -1 });
 
     res.json(stories);
   } catch (err) {

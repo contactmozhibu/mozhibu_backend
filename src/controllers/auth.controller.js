@@ -28,6 +28,7 @@ export const register = async (req, res) => {
       age--;
     }
 
+    // 🧠 Determine ageGroup
     // 🧠 Determine ageGroup + ageKey
 let ageGroup;
 let ageKey;
@@ -37,10 +38,7 @@ if (age <= 12) {
   ageKey = "kids";
 } else if (age <= 17) {
   ageGroup = "Teens (13-17)";
-  ageKey = "teens";
-} else {
-  ageGroup = "Adults (18+)";
-  ageKey = "adults";
+ageKey = "adults";
 }
 
     // 👤 Create user

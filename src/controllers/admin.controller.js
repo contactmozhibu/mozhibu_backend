@@ -592,7 +592,8 @@ export const getAllCategories = async (req, res) => {
     // Add subcategories and stories count for each category
     const categoriesWithStats = await Promise.all(
       categories.map(async (cat) => {
-        const stories = await Story.find({ category: cat.name, status: "PUBLISHED" });
+        const stories = await Story.find({ category: cat.name, status: "PUBLISHED" })
+          .populate("author", "username");
         
         // Count unique subcategories
         const subcategoriesSet = new Set();
@@ -629,6 +630,7 @@ export const getCategoriesWithStoriesFromDB = async (req, res) => {
     const stories = await Story.find({
       status: "PUBLISHED"
     })
+      .populate("author", "username")
       .select("title category subcategories")
       .sort({ createdAt: -1 });
 
@@ -732,7 +734,8 @@ export const populateCategoriesFromStories = async (req, res) => {
     console.log("🔍 Starting to populate categories from stories...");
     
     // Get all published stories
-    const stories = await Story.find({ status: "PUBLISHED" });
+    const stories = await Story.find({ status: "PUBLISHED" })
+      .populate("author", "username");
     console.log(`📚 Found ${stories.length} published stories`);
     
     if (stories.length === 0) {
@@ -806,7 +809,8 @@ export const syncStoriesWithCategories = async (req, res) => {
   try {
     console.log("🔄 Starting to sync all stories with their categories...");
     
-    const allStories = await Story.find({ status: "PUBLISHED" });
+    const allStories = await Story.find({ status: "PUBLISHED" })
+      .populate("author", "username");
     console.log(`📚 Found ${allStories.length} published stories to sync`);
     
     let syncedCount = 0;

@@ -372,13 +372,12 @@ router.get("/me", authMiddleware, async (req, res) => {
         avatar
         isActive
         createdAt
-        updatedAt
         followers
         following
       `
       )
-      .populate("followers", "username avatar updatedAt")
-      .populate("following", "username avatar updatedAt")
+      .populate("followers", "username avatar")
+      .populate("following", "username avatar")
       .lean();
 
     if (!author) {
@@ -469,14 +468,13 @@ console.log("REQ FILE:", req.file);
             new: true,
           }
         )
-          .select("username firstName lastName email mobile phone bio avatar isActive createdAt updatedAt followers following")
           .populate(
             "followers",
-            "username avatar updatedAt"
+            "username avatar"
           )
           .populate(
             "following",
-            "username avatar updatedAt"
+            "username avatar"
           );
 
       res.json({
@@ -612,18 +610,17 @@ router.get("/:id", async (req, res) => {
         username
         avatar
         createdAt
-        updatedAt
         followers
         following
       `
         )
         .populate(
           "followers",
-          "username avatar updatedAt"
+          "username avatar"
         )
         .populate(
           "following",
-          "username avatar updatedAt"
+          "username avatar"
         );
 
     if (!author) {
